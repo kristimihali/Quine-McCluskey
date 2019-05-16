@@ -1,0 +1,826 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <iostream>
+#include <cmath>
+using namespace std;
+
+struct node
+{
+    int data[50],bin[8],noofones,isimplicant,minarr[200];
+    char term[8];
+    struct node* right;
+};
+
+struct node *root,*head,*improot,*save,*fin;
+int var,minimum,number=1,columns=2,check=1,limit,imptable[30][30],counter=0,essential[200],t=0,no=0,minterms[200];
+char a[8],b[8];       //variablat do te ruhen ne vektore, ku germat kapitale i perkasin 1shave dhe te tjerat, i perkasin zerove.
+
+void RradhitSipas1();          // Mintermat grupohen sipas numrit te njeshave
+void Rradhit();         //Mintermat rradhit ne varesi te madhesise dhjetore te tyre(sort)
+void swap(struct node*,struct node*);           //te gjitha te dhenat midis vlerave te elementeve te nje liste, shkembehen me te nje tjetre
+void Shfaq();            // Shfaqen hapat e alogitmit, ku perkatesisht ky funksion shfaq vetem hapin e pare me numrat dhjetor dhe binar perkates
+void Grupime();           //Mintermat ciftezohen, ndryshimi vetem me nje bit midis tyre
+void Fshi(struct node*);            //fshirja e elementit te fundit nga lista kur kjo e fundit lirohet dhe s'eshte me e nevojshme
+void Shfaq_implikantet();              //Shfaqja e implikanteve
+void implicants(struct node*);          //Vendos node->isimplikant ne vleren 1, ku i perket kalimit te implikanteve ne ato primare
+void HiqDublikat();                 //Konverton termin nga binar ne variabel dhe heq duplikatat e cifteve
+void Variablat();       //Variablat per funksionin ruhen
+void Konverto();             //Konverton  cdo numer binar te secilit term ne variabla
+void Tabela_implikanteve();        //Implicants are found Tabela e implikanteve prim
+void SOP_minimizim();                //Funksioni sum of products
+void Implikante_tjere();        //Implikantet prim dhe esencial ruhen, per te gjetur implikantet e rradhes
+void Terma_perfundimtar();     //Termi final ruhet per te shfaqur termin perfundimtar teminimizuar ne baze te te dhenave/ inputeve
+void Ruaj_mintermat();      //Mintermat ruhen ne nje array
+void Printo_Final();    // Printon implikantet thelbesor ne trajten binare
+
+int main()
+{
+    int i,j,k,x;
+    struct node* temp, *temporal;
+    
+    cout<<"\nVendos numrin e variablave : ";       //NUMRI I VARIABLEVE DHE MINTERMSAVE RUHET
+    cin>>var;
+    while(cin.fail()) {
+        cout << "failed" << endl;
+        cout<<"\nVendosni NUMER: ";
+        cin.clear ();
+        cin.ignore(256,'\n');
+        
+        cin >>var;
+    }
+    if(var<=0){
+        cout<< "Numer shume i vogel variablash, s'mund te ekzekutohet alogritmi";
+        return 0;
+        
+    }
+    if(var>8){
+        cout<<"Numer teper i madh variablash, nuk mund te ekzekutohet algoritmi";
+        return 0;
+    }
+    
+    cout<<"\nVendos sa mintermsa do te kete: ";
+    cin>>minimum;
+    while(cin.fail()) {
+        cout << "failed" << endl;
+        cout<<"\nVendosni NUMER: ";
+        cin.clear ();
+        cin.ignore(256,'\n');
+        
+        cin >>minimum;
+    }
+    
+    if(minimum == 0){
+        cout<<"S'ka minterma per te thjeshtesuar, perfundon algoritmi";
+        return 0;
+    }
+    
+    if(minimum>=pow(2,var)){
+        cout<<"Numer teper i madh mintermash, nuk mund te ekzekutohet algoritmi mbi keto te dhena";
+        return 0;
+    }
+    
+    
+    i=minimum-1;
+    
+    int hap=1;
+    root=temp=(struct node*)malloc(sizeof(struct node));
+    cout<<"\nVendos mintermsat nje nga nje:\n";
+    cout<< "Mintermi i "<<hap<<": ";
+    hap++;
+    
+    cin>>temp->data[0];     //RUHET MINTERMI I PARE
+    
+    while(cin.fail()) {
+        cout << "failed" << endl;
+        cout<<"\nVendosni NUMER: ";
+        cin.clear ();
+        cin.ignore(256,'\n');
+        
+        cin >>temp->data[0];
+    }
+    
+    if(temp->data[0]>=pow(2,var)){
+        cout<<"Numer teper i madh mintermi, nuk mund te ekzekutohet algoritmi mbi keto te dhena";
+        return 0;
+    }
+    //shtim
+    int z=0;
+    int vektorMin[z];
+    vektorMin[z]= temp->data[0];
+    z++;
+    //fund-shtim
+    j=temp->data[0];
+    temp->noofones=0;
+    x=var;
+    k=0;
+    while(x--)      //KONVERTOHET MINTERMI I PARE NE BINAR
+    {
+        if(j%2==1)
+        {
+            temp->bin[k]=1;
+            temp->noofones++;
+        }
+        else
+        {
+            temp->bin[k]=0;
+        }
+        j=j/2;
+        k++;
+    }
+    
+    while(i--)      //RUHEN MINTERMAT E TJERE
+    {
+        temp=temp->right=(struct node*)malloc(sizeof(struct node));
+        
+        cout<< "Mintermi i "<<hap<<": ";
+        //shtim
+        int inputMin;
+        cin>>inputMin;
+        //cin>>temp->data[0];
+        
+        while(cin.fail()) {
+            cout << "failed" << endl;
+            cout<<"\nVendosni NUMER: ";
+            cin.clear ();
+            cin.ignore(256,'\n');
+            
+            cin >>inputMin;
+        }
+        
+        if(inputMin>=pow(2,var)){
+            cout<<"Numer teper i madh mintermi, nuk mund te ekzekutohet kodi mbi keto te dhena";
+            return 0;
+        }
+        //shtim
+        for(int v=0;v<z;v++){
+            if(inputMin==vektorMin[v]){
+                cout<<"Vendos minterm tjeter, ndodhet gia'"<<endl<<"Mintermi i "<<hap<<": ";
+                cin>>inputMin;
+                
+                while(cin.fail()) {
+                    cout << "failed" << endl;
+                    cout<<"\nVendosni NUMER: ";
+                    cin.clear ();
+                    cin.ignore(256,'\n');
+                    
+                    cin >>inputMin;
+                }
+                
+                if(inputMin>=pow(2,var)){
+                    cout<<"Numer teper i madh mintermi, nuk mund te ekzekutohet kodi mbi keto te dhena";
+                    return 0;
+                }
+                continue;
+            }
+        }
+        temp->data[0]=inputMin;
+        vektorMin[z]=temp->data[0];
+        z++;
+        //fund-shtim
+        hap++;
+        j=temp->data[0];
+        temp->noofones=0;
+        x=var;
+        k=0;
+        
+        while(x--)
+        {
+            if(j%2==1)          //KONVERTON NE BINAR MINTERMAT E TJERE
+            {
+                temp->bin[k]=1;
+                temp->noofones++;       //NUMRI I NJESHAVE NE TRAJTEN BINARE PER MINTERMIN PERKATES
+            }
+            else
+            {
+                temp->bin[k]=0;
+            }
+            j=j/2;
+            k++;
+        }
+    }
+    
+    temp->right=NULL;
+    Rradhit();      //NIS THERRITJA E FUNKSIONEVE NE VARESI TE KERKESAVE TE ALGORITMIT
+    Ruaj_mintermat();
+    
+    RradhitSipas1();
+    Shfaq();
+    Fshi(root);
+    head=(struct node*)malloc(sizeof(struct node));
+    while(check>0)
+    {
+        Grupime();
+    }
+    save->right=NULL;           //RUAN VLEREN NULL NE LISTEN E IMPLIKANTEVE PRIM
+    cout<<"S'ka me hap te metejshem\n\n";
+    Fshi(improot);
+   
+    HiqDublikat();
+    Shfaq_implikantet();
+    Variablat();
+    Tabela_implikanteve();
+   
+    Implikante_tjere();
+    Terma_perfundimtar();
+    Fshi(fin);
+    Printo_Final();
+    Konverto();
+    SOP_minimizim();
+    
+    return 0;
+}
+
+//FUNKSIONET
+
+void Rradhit()          //Mintermat rradhit ne varesi te madhesise dhjetore te tyre(sort)
+{
+    struct node *temp1,*temp2;
+    temp1=temp2=root;
+    while(temp1!=NULL)
+    {
+        temp2=root;
+        while(temp2!=NULL)
+        {
+            if(temp1->data[0]<temp2->data[0])       //NESE S'JANE TE RRADHITURA, BEJ SWAP() TE GJITHA VLERAT PERKATESE
+            {
+                swap(temp1,temp2);
+            }
+            temp2=temp2->right;
+        }
+        if(temp1->right==NULL)
+        {
+            limit=temp1->data[0];
+        }
+        temp1=temp1->right;
+    }
+}
+
+void swap(struct node* temp1,struct node* temp2)        //BEN SWAP() TE GJITHA VLERAT E DY KUTIAVE TE LISTES
+{
+    int x,y,i=0;
+    i=var;
+    for(i=0;i<var;i++)      //VLERA BINARE SHKEMBEHET
+    {
+        y=temp1->bin[i];
+        temp1->bin[i]=temp2->bin[i];
+        temp2->bin[i]=y;
+    }
+    y=temp1->noofones;          //NUMRI I NJESHAVE SHKEMBEHET
+    temp1->noofones=temp2->noofones;
+    temp2->noofones=y;
+    x=temp1->data[0];           //data(minterm) SHKEMBEHET
+    temp1->data[0]=temp2->data[0];
+    temp2->data[0]=x;
+}
+
+void Ruaj_mintermat()       //VEKTOR QE RUAN GJITHE MINTERMSAT
+{
+    int i=0;
+    struct node* temp;
+    temp=root;
+    while(temp!=NULL)
+    {
+        minterms[i]=temp->data[0];
+        i++;
+        temp=temp->right;
+    }
+}
+
+//KRISTI
+
+void RradhitSipas1()       //RRADHIT NE BAZE TE NJESHAVE TE TRAJTES BINARE
+{
+    int i,count=0,j,k=0;
+    struct node *temp,*next;
+    temp=save=root;
+    root=next=(struct node*)malloc(sizeof(struct node));
+    for(i=0;i<=var;i++)
+    {
+        temp=save;
+        while(temp!=NULL)
+        {
+            if(temp->noofones==i)       //RUHEN SIPAS NR TE NJESHAVE, NIS NGA 0 NJESHA, 1 NJESH, 2 NJESHA... NE VAZHDIM
+            {
+                next->data[0]=temp->data[0];
+                k++;
+                for(j=0;j<var;j++)
+                {
+                    next->bin[j]=temp->bin[j];
+                }
+                next->noofones=temp->noofones;
+                next=next->right=(struct node*)malloc(sizeof(struct node));
+            }
+            temp=temp->right;
+        }
+    }
+    minterms[k]=-1;
+    next->right=NULL;
+}
+
+void Shfaq()     //SHFAQ KOLONEN E PARE, OSE HAPIN E PARE ME NUMRAT NE TRAJTEN DHJETORE DHE DECIMALE
+{
+    int i,j=minimum;
+    struct node* temp;
+    temp=root;
+    
+    cout<<"\n\nHapi: "<<number<<"\n\n\n";          //SHAFQ NUMRIN E HAPIT PERKATES
+    while(temp->right!=NULL)
+    {
+        //printf("%d\t",temp->data[0]);
+        cout<<temp->data[0]<<"\t";
+        for(i=var-1;i>=0;i--)
+        {
+            cout<<temp->bin[i];
+        }
+        temp=temp->right;
+        cout<<endl;
+    }
+    temp->right=NULL;
+    number++;
+}
+
+void Fshi(struct node* ptr)         //HEQ ELEMENTIN E FUNDIT TE LISTES
+{
+    struct node* temp;
+    temp=ptr;
+    while(temp->right->right!=NULL)
+    {
+        temp=temp->right;
+    }
+    temp->right=NULL;
+}
+
+void Grupime()    //GRUPIM NE BAZE TE NDRYSHIMIT VETEM ME NJE BIT
+{
+    int i,count,k,j,x;
+    struct node *temp,*next,*p,*imp;
+    check=0;
+    if(columns==2)      //PER KOLONEN E DYTE/HAPIN E DYTE
+    {
+        imp=improot=(struct node*)malloc(sizeof(struct node));
+        p=head;
+    }
+    else        //PER KOLONAT E TJERA
+    {
+        imp=save;
+        root=head;
+        p=head=(struct node*)malloc(sizeof(struct node));
+    }
+    temp=root;
+    implicants(root);
+    cout<<"\n\nHapi: "<<number<<endl;
+    while(temp!=NULL)
+    {
+        next=temp->right;
+        while(next!=NULL)
+        {
+            count=0;
+            if(next->noofones-temp->noofones==1)        //IF NESE DY NUMRA NDRYSHOJNE ME NJE BIT NJESHASH
+            {
+                for(i=0;i<var;i++)
+                {
+                    if(temp->bin[i]!=next->bin[i])
+                    {
+                        k=i;            //RUHET VENDI KU ATO NDRYSHOJNE
+                        count++;
+                    }
+                }
+            }
+            if(count==1)        //KONTROLLON NESE DY NUMRA NDRYSHOJNE VEC ME NJE BIT MIDIS TYRE
+            {
+                temp->isimplicant=0;        //NESE PO, S'JANE IMPL PRIM
+                next->isimplicant=0;
+                check++;
+                for(i=0;i<var;i++)
+                {
+                    p->bin[i]=temp->bin[i];         //RUHET NE LISTEN PROVIZORE IMPLIKANTI PERKATES, BIN[]
+                }
+                p->bin[k]=-1;
+                x=0;
+                for(j=0;j<columns/2;j++)            //RUHET NE LISTEN PROVIZORE IMPLIKANTI PERKATES, DATA[]
+                {
+                    p->data[x]=temp->data[j];
+                    x++;
+                }
+                for(j=0;j<columns/2;j++)            //RUHET NE LISTEN PROVIZORE EDHE IMPL I DYTE, PASI KONTROLLOHEN PERKATESISHT NEXT, TEMP
+                {
+                    p->data[x]=next->data[j];
+                    x++;
+                }
+                p->noofones=temp->noofones;
+                for(j=0;j<=columns;j++)      //FORMOHET CIFTI
+                {
+                    cout<<" "<<p->data[j];
+                    
+                }
+                cout<<"\b ";
+                cout<<"\t";
+                for(i=var-1;i>=0;i--)
+                {
+                    if(p->bin[i]==-1)
+                        cout<<"-";
+                    else
+                        cout<<p->bin[i];
+                }
+                cout<<endl;
+                p=p->right=(struct node*)malloc(sizeof(struct node));           // KEMI NJE VEND BOSH NE MEMORJE QE DUHET TE FSHIHET
+            }
+            next=next->right;
+        }
+        temp=temp->right;
+    }
+    p->right=NULL;
+    if(check!=0)
+    {
+        Fshi(head);     //FSHIHET VENDI BOSH
+    }
+    temp=root;
+    while(temp!=NULL)           //PER TE ZGJEDHUR IMPL PRIM
+    {
+        if(temp->isimplicant==1)        // RUAJME NE IMP[] IMPLIKATET PRIM
+        {
+            i=0;
+            for(i=0;i<columns/2;i++)
+            {
+                imp->data[i]=temp->data[i];
+            }
+            imp->data[i]=-1;
+            for(i=0;i<var;i++)
+            {
+                imp->bin[i]=temp->bin[i];
+            }
+            imp=imp->right=(struct node*)malloc(sizeof(struct node));
+        }
+        temp=temp->right;
+    }
+    save=imp;
+    columns=columns*2;
+    number++;
+}
+
+void implicants(struct node* ptr)       //BEJ CDO IMPLIKANT, SI PRIM ->ISIMPLIKANT==1
+{
+    struct node* temp;
+    temp=ptr;
+    while(temp!=NULL)
+    {
+        temp->isimplicant=1;
+        temp=temp->right;
+    }
+}
+
+//KELA
+
+void HiqDublikat() //Ne rastet kur kemi dy ose me shume cifte te njejte implikantesh, ruhet vetem nje cift pasi rezultati eshte i njejte;
+{
+    int common=0; // Variabel i cili do te perdoret per te kontrolluar ne qofte se rezultati i deritanishem ne binar eshte identik per 2+ cifte;
+    int i; //Variabel qe ndihmon ne brredhjen e vektorit "bin[]";
+    
+    struct node *temp1,*temp2;
+    temp1=temp2=improot; //Variabla qe do te na ndihmojne ne brredhjen e listes, gjithashtu per te bere krahasimin ndermjet elementeve;
+    
+    struct node *temp3; //Variabel i cili do te sherbeje per te zevendesuar elementin dublikat me elementin pasardhes ne liste;
+    
+    while(temp1!=NULL) //Fillon brredhja e listes deri ne elementin e fundit;
+    {
+        temp2=temp1->right; //Shenjuesi "temp2" kalon ne elementin pasardhes te "temp1";
+        while(temp2!=NULL)
+        {
+            common=0; //Variabli inicializohet cdo here me 0 sepse kontrolli kryhet per cdo element te listes dhe nuk duam qe te kemi te dhena nga kontrolli i meparshem;
+            
+            for(i=0;i<var;i++) //Brredhja e vektorit kur ruhet perkatesia binare e elementit aktual;
+            {
+                if(temp2->bin[i]==temp1->bin[i]) //Krahasimi i vektorit "bin[]" te elementit aktual "temp1" me vektorin "bin[]" te elementit pasardhes "temp2";
+                {
+                    common++; //Ne qofte se te dyja te dhenat ne pozicionet e caktuara jane identike, inkrementohet "common";
+                }
+            }
+            if(common==var) //Ne qofte se dy vektoret e mesiperm jane identik, "common" eshte inkrementuar aq here sa variabla kemi gjithsej;
+            {
+                temp3=improot; //Inicializohet shenjuesi ndihmes ne fillim te listes;
+                
+                while(temp3->right!=temp2) //Pozicionojme shenjuesin nje pozicion para elementit qe duam te fshijme;
+                {
+                    temp3=temp3->right;
+                }
+                temp3->right=temp2->right; /*Qe elementi mos te figuroje me ne liste, lidhim shenjuesin aktual "temp3" me elementin pasardhes te "temp2".
+                                            Ne kete menyre "temp2" nuk figuron me ne liste pasi lidhja e tij me parardhesin e tij u fshi.*/
+                temp2=temp3; //Ripozicionohet "temp2" duke u kthyer nje pozicion me pare se pozicioni qe ishte para se te fshihej;
+            }
+            temp2=temp2->right; //"temp2" pozicionet ne elementin pasardhes per te vazhduar kontrollin per elementet e tjere te listes;
+        }
+        temp1=temp1->right; //"temp1" pozicionet ne elementin pasardhes per te vazhduar kontrollin per elementet e tjere te listes;
+    }
+}
+
+
+
+
+void Shfaq_implikantet() //Shfaqim implikantet ne terminal;
+{
+    int i=0; //Variabel qe na ndihmon ne brredhjen e vektoreve;
+    
+    struct node* temp;
+    temp=improot; //Shenjuesi inicializohet ne fillim te listes. Me ane te tij brredhim te gjithe listen;
+    
+    cout<<"\n\nImplikantet prime jane:- \n\n";
+    
+    while(temp!=NULL) //Brredhja e listes;
+    {
+        i=var-1; //Inicializohet "i" me var -1 sepse brredhja duhet te filloje nga fundi;
+        while(i>=0) //Kontrolli qe nuk kemi arritur ne fund te vektorit;
+        {
+            if(temp->bin[i]==-1) //-1 ne vektor simbolizon nje thjeshtim termash pra outputi duhet te jete "-" ;
+            {
+                cout<<"-";
+            }
+            else //Ne qofte nuk kemi thjeshtim shfaqet biti 0/1;
+            {
+                cout<<temp->bin[i];
+            }
+            i--; //Dekremntohet i-ja qe te kalojme tek elementi parardhes;
+        }
+        cout<<"\t\t";
+        
+        i=0; //Variabli "i" inicializohet perseri me 0 qe kontrollin ne vektorin "data[]" ta nisim nga fillimi;
+        
+        while(temp->data[i]!=-1) //Shfaqja e termave te mintermave sipas cifteve;
+        {
+            cout<<temp->data[i]<<",";
+            i++;
+        }
+        cout<<"\b ";
+        temp=temp->right; //Shenjuesi "temp" kalon ne elementin pasardhes ne menyre qe te afishohen te gjithe elementet e listes;
+        cout<<endl;
+        counter++;//Numeron sa implikante prime kemi;
+    }
+}
+
+
+void Variablat() //Ne dy vektore te ndryshem ruajme termat perkates sipas numrit te variablave;
+{
+    int i;
+    int x=8-var; //Variabli x ruan sa elemente para duhet te zhvendosemi.
+    for(i=0;i<var;i++)
+    {
+        a[i]=72-x-i; //Ne vektorin "a[]" ruhen termat(pra vlera 1) dhe paraqiten simbolikisht me shkronja kapitale;
+        b[i]=104-x-i;//Ne vektorin "b[]" ruhen komplementet e termave (pra vlera 0) dhe simbolikish paraqiten me shkronja te vogla;
+    }
+}
+
+void Tabela_implikanteve() //Krijimi i tabeles se implikanteve dhe gjetja e implikanteve themeolre
+{
+    struct node* temp;
+    int i,j,k,m,n,x,y,count=0,count2=0,a=0;
+    for(i=0;i<counter;i++) //Mbushja e matrices  per krijimin e tabeles se implikanteve;
+    {
+        for(j=0;j<=limit;j++) //Limit eshte termi i fundit pasi eshte perdorur funxioni "rradhit()", pra numri me i madh;
+        {
+            imptable[i][j]=0;  //Mbushet matrica me 0;
+        }
+    }
+    i=0;
+    j=0;
+    k=0;
+    temp=improot; //Inicializohet shenjuesi "temp" me koken e listes;
+    while(temp!=NULL)
+    {
+        k=0;
+        while(temp->data[k]!=-1)
+        {
+            imptable[i][temp->data[k]]=1;  /* Ne matricen e implikanteve vendoset "1" ne rreshtin e caktuar dhe ne     kolonen qe indexi i se ciles eshte i barabarte me vleren e termit qe ndodhet ne cift;*/
+            k++;
+        }
+        i++;
+        temp=temp->right;
+    }
+    cout<<"\n\n\t\t\tTabela e Vertetesise\n\n\n";
+    temp=improot;
+    i=0;
+    cout<<" ";
+    while(minterms[i]!=-1)
+    {
+        cout<<minterms[i]<<"\t"; //Shfaqen te gjithe mintermat (te ruajtur me pare ne vetorin "minterms[]") te rradhitur nga me i vogli tek me i madhi;
+        i++;
+    }
+    cout<<endl;
+    
+    for(i=0;i<counter;i++) //"Counter" perfaqeson numrin e implikanteve prandaj kontrolli kryhet deri ne kete index;
+    {
+        cout<<" ";
+        a=0; //Variabli "a" na ndihmon te brredhim vektorin "minterms[]" dhe per te bere kontrollet e nevojshme;
+        for(j=0;j<=limit;j++) //"limit" eshte mintermi me vleren me te madhe prandaj kontrolli kryhet deri ne kete index;
+        {
+            if(j==minterms[a]) //Kontrollojme ne qofte se vlera e "j" perputhet me vleren e indexit a ne vektorin minterms;
+            {
+                if(imptable[i][j]==0) /*Ne qofte se vlera per rreshtin "i" (pra implikantin e i-te) dhe per kolonen "j" (pra vleren e termit ne implikant) ne matrice ka vlere 0 do te thote qe ky term nuk ben pjese tek implikanti jone dhe simbolikisht shenohet me "-"; */
+                {
+                    cout<<"-";
+                }
+                if(imptable[i][j]==1) /* Si rasti i mesiperm por tani e kunderta, pra ne qofte se termi me vlere j ne matrice ka vlere 1 do te thote qe perfishet ne implikantin e i-te dhe simbolikisht shenohet me "X"; */
+                {
+                    cout<<"X";
+                }
+                cout<<"\t";
+                a++;
+            }
+        }
+        y=0; //Variabel qe na ndihmon ne brredhjen e listes;
+        while(temp->data[y]!=-1)        //Printimi i cifeteve te mintermave;
+        {
+            cout<<temp->data[y]<<",";
+            y++;
+        }
+        cout<<"\t ";
+        temp=temp->right; //Zhvendosja e shenjuesit "temp" ne elementin pasardhes;
+        cout<<endl;
+    }
+    cout<<endl;
+    
+    for(i=0;i<counter;i++) //Cikel per gjetjen e implikanteve themelore;
+    {
+        for(j=0;j<=limit;j++)
+        {
+            count=0; //Variabel qe numeron sa "X" ka secili minterm ne matrice;
+            if(imptable[i][j]==1)
+            {
+                y=j;
+                x=i;
+                for(k=0;k<counter;k++)
+                {
+                    if(imptable[k][j]==1) //Kontrollon ne qofte se ndodhet vetem nje "X" ne kolonen "j" ne matrice;
+                    {
+                        count++;
+                    }
+                }
+                if(count==1)  //Zevendeson me 0 cdo kolone te tabeles e cila permban vetem nje "X" per kolone;
+                {
+                    essential[t]=x; //Ruan rreshtin ku ruhet implikanti themelor;
+                    t++;
+                    for(n=0;n<=limit;n++)
+                    {
+                        if(imptable[i][n]==1)
+                        {
+                            for(m=0;m<counter;m++)
+                            {
+                                imptable[m][n]=0; //Mbushja e matrices me 0;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    essential[t]=-1; //Perfundon mbushja e vektorit me elemente pasi i ka ruajtur te gjithe implikantet themelore;
+}
+
+
+//BESHO
+
+void Implikante_tjere()     //after finding the essential prime implicants other terms necessary are marked
+{
+    no=0;           //to check if any term is found in each iteration
+    int count1=0,count2=0;
+    int i,j;
+    for(i=0;i<counter;i++)
+    {
+        count1=0;
+        for(j=0;j<=limit;j++)
+        {
+            if(imptable[i][j]==1)       //no. of X's or 1's are calculated
+            {
+                no++;
+                count1++;
+            }
+        }
+        if(count1>count2)       //to find the term with maximum X's in a row
+        {
+            essential[t]=i;
+            count2=count1;
+        }
+    }
+    for(j=0;j<=limit;j++)           //removing the X's in the row as well a those X's which are in same column
+    {
+        if(imptable[essential[t]][j]==1)
+        {
+            for(i=0;i<counter;i++)
+            {
+                imptable[i][j]=0;
+            }
+        }
+    }
+    t++;
+    essential[t]=-1;
+    if(no>0)            //if one or more terms is found the function is called again otherwise not
+    {
+        Implikante_tjere();
+    }
+}
+
+void Terma_perfundimtar()          //in this function all the terms in the minimized expression are stored in a linked list
+{
+    int i=0,j,c=0,x;
+    struct node *temp,*ptr;
+    fin=temp=(struct node*)malloc(sizeof(struct node));
+    while(essential[i]!=-1)
+    {
+        ptr=improot;
+        x=essential[i];
+        for(j=0;j<x;j++)        //so that pointer points to the node whose index was stored in array named essential
+        {
+            ptr=ptr->right;
+        }
+        j=0;
+        while(ptr->data[j]!=-1)         // the data of the node is stored
+        {
+            temp->data[j]=ptr->data[j];
+            j++;
+        }
+        temp->data[j]=-1;
+        for(j=0;j<var;j++)          //the binary code is stored
+        {
+            temp->bin[j]=ptr->bin[j];
+        }
+        temp=temp->right=(struct node*)malloc(sizeof(struct node));
+        i++;
+        c++;
+    }
+    temp->right=NULL;
+}
+
+void Konverto()          //it converts the binary notation of each term to variables
+{
+    int i,j;
+    struct node* temp;
+    temp=fin;
+    while(temp!=NULL)
+    {
+        j=0;
+        for(i=0;i<var;i++)
+        {
+            if(temp->bin[i]==0)
+            {
+                temp->term[j]=b[i];
+                j++;
+            }
+            if(temp->bin[i]==1)
+            {
+                temp->term[j]=a[i];
+                j++;
+            }
+        }
+        temp=temp->right;
+    }
+}
+void Printo_Final(){
+    int i,j;
+    struct node* temp;
+    temp=fin;
+    cout<< "Implikantet thelbesor jane: \n";
+    while(temp!=NULL)
+    {
+        j=0;
+        for(i=var-1;i>=0;i--)
+        {
+            if(temp->bin[i]==0)
+            {
+                cout<<temp->bin[i];
+                //j++;
+            }
+            if(temp->bin[i]==1)
+            {
+                cout<<temp->bin[i];
+                //j++;
+            }
+            if(temp->bin[i]==-1){
+                cout<< "-";
+            }
+        }
+        cout<< " + ";
+        temp=temp->right;
+    }
+}
+
+void SOP_minimizim()         //displays the minimized function in SOP form
+{
+    
+    struct node* temp;
+    temp=fin;
+    cout<<"\n\nFunksioni i minimizuar eshte :";
+    int i=0;
+    while(temp!=NULL)
+    {
+        for(i=var-1;i>=0;i--){
+            
+            cout<<temp->term[i];
+        }
+        //cout<<temp->term;
+        if(temp->right!=NULL)
+        {
+            cout<<" + ";
+        }
+        temp=temp->right;
+    }
+    cout<<endl;
+}
+
